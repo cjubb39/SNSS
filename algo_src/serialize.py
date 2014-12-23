@@ -61,6 +61,12 @@ if __name__ == "__main__":
         for line in f:
             validation_top_n.append(line.split())
 
+    # load random N
+    random_n = []
+    with open('output/random_' + n_input + '_nodes', 'r') as f:
+        for line in f:
+            random_n.append(line.split())
+
     # calculate h/a for each graph
     rt_h, rt_a = hits(retweet_graph)
     rt_h = defaultdict(lambda: 0.0, rt_h)
@@ -73,39 +79,40 @@ if __name__ == "__main__":
     mention_a = defaultdict(lambda: 0.0, mention_a)
 
     # get set of unique nodes in all graphs
-    training_set = sample(validation_top_n, int(ceil(int(n_input) * 0.2)))
+    training_set = sample(random_n, int(ceil(int(n_input) * 0.2)))
     training_nodes = set(map(lambda x: x[0], training_set))
     # sample "guess" nodes from social data
     testing_nodes = set(retweet_graph.nodes()) | set(reply_graph.nodes()) | set(mention_graph.nodes()) - training_nodes
 
     # populate training
-    training_X = np.empty([len(training_nodes), 9])
+    training_X = np.empty([len(training_nodes), 6])
     training_Y = np.empty(len(training_nodes))
     for index, n_v_tuple in enumerate(training_set):
         node = n_v_tuple[0]
         value = n_v_tuple[1]
-        training_X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node], calc_ratio(retweet_graph, node), calc_ratio(reply_graph, node), calc_ratio(mention_graph, node)]
+        training_X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node]]
         training_Y[index] = value
 
     clf = SVR(C=1.0, epsilon=0.2)
     clf.fit(training_X, training_Y)
 
     # populate testing
-    X = np.zeros([len(testing_nodes), 9])
+    X = np.zeros([len(testing_nodes), 6])
     ordered_test_nodes = [None] * len(testing_nodes)
     for index, node in enumerate(testing_nodes):
-        X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node], calc_ratio(retweet_graph, node), calc_ratio(reply_graph, node), calc_ratio(mention_graph, node)]
+        X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node]]
         ordered_test_nodes[index] = node
 
     predictions = clf.predict(X)
 
     # sort by rt_h score
-    with open('output/rt_h_top_n.txt', 'w+') as f:
+    with open('output/calculated_top_' + n_input + '.txt', 'w+') as f:
+        count = 0
         for i,p in sorted(enumerate(predictions), key=operator.itemgetter(1), reverse=True):
+            if count >= int(n_input):
+                break
             f.write(str(ordered_test_nodes[i]))
             f.write(' ')
             f.write(str(p))
             f.write("\n")
-
-
-    # training_nodes = extract_p(.2)
+            count += 1
