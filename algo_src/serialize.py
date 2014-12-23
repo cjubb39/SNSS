@@ -152,7 +152,7 @@ if __name__ == "__main__":
     predictions = clf.predict(X)
 
     # sort by predicted edges score
-    with open('output/calculated_top_' + n_input + '.txt', 'w+') as f:
+    with open('output/calculated_top_' + n_input, 'w+') as f:
         count = 0
         for i,p in sorted(enumerate(predictions), key=operator.itemgetter(1), reverse=True):
             if count >= int(n_input):
