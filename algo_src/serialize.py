@@ -55,6 +55,8 @@ if __name__ == "__main__":
     known_input = sys.argv[1]
     goal_input = sys.argv[2]
     kernel = sys.argv[3]
+    random_input_data_name = sys.argv[4]
+    output_data_name = sys.argv[5]
     best_params = pickle.load(open('output/params', 'r'))
 
     retweet_graph = nx.DiGraph()
@@ -68,7 +70,7 @@ if __name__ == "__main__":
 
     # load random N
     training_set = []
-    with open('output/random_' + known_input + '_nodes', 'r') as f:
+    with open(random_input_data_name, 'r') as f:
         for line in f:
             training_set.append(line.split())
 
@@ -115,7 +117,7 @@ if __name__ == "__main__":
     predictions = clf.predict(X)
 
     # sort by predicted edges score
-    with open('output/calculated_top_' + goal_input + '_' + kernel, 'w+') as f:
+    with open(output_data_name, 'w+') as f:
         count = 0
         for i,p in sorted(enumerate(predictions), key=operator.itemgetter(1), reverse=True):
             if count >= int(goal_input):
