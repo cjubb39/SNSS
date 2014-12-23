@@ -1,6 +1,6 @@
 NETWORK_DATA ?= data/higgs-social_network.edgelist
 N ?= 20
-OUTPUT_FILE ?= top_$(N)_nodes
+OUTPUT_FILE ?= output/top_$(N)_nodes
 
 default: $(OUTPUT_FILE)
 
@@ -10,9 +10,10 @@ help:
 	@head -n3 Makefile
 
 $(OUTPUT_FILE): $(NETWORK_DATA)
+	@mkdir -p output
 	python generate_top_n_nodes.py $(NETWORK_DATA) $(N) $(OUTPUT_FILE)
 
 $(NETWORK_DATA):
 
 clean:
-	find . -regex './top_[0-9]+_nodes' -delete
+	find . -regex './output/top_[0-9]+_nodes' -delete
