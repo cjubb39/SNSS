@@ -9,7 +9,7 @@ help:
 	@echo "Defaults are as follows:\n"
 	@head -n3 Makefile
 
-$(OUTPUT_FILE): $(NETWORK_DATA)
+$(OUTPUT_FILE): $(NETWORK_DATA) generate_top_n_nodes.py
 	@mkdir -p output
 	python generate_top_n_nodes.py $(NETWORK_DATA) $(N) $(OUTPUT_FILE)
 
