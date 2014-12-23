@@ -67,10 +67,10 @@ if __name__ == "__main__":
     graphs = [retweet_graph, reply_graph, mention_graph]
 
     # load random N
-    random_n = []
+    training_set = []
     with open('output/random_' + known_input + '_nodes', 'r') as f:
         for line in f:
-            random_n.append(line.split())
+            training_set.append(line.split())
 
     # calculate h/a for each graph
     features = []
@@ -85,7 +85,6 @@ if __name__ == "__main__":
     features = [normalize_feature(x) for x in features]
 
     # get set of unique nodes in all graphs
-    training_set = sample(random_n, int(ceil(int(known_input) * 0.2)))
     training_nodes = set(map(lambda x: x[0], training_set))
     # sample "guess" nodes from social data
     all_nodes = set(retweet_graph.nodes()) | set(reply_graph.nodes()) | set(mention_graph.nodes())

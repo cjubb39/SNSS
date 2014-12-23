@@ -142,8 +142,8 @@ if __name__ == "__main__":
     for kernel in best_params_histogram:
         temp_params_tuple = max(best_params_histogram[kernel].iteritems(), key=lambda x: np.mean(x[1]))[0]
         best_params[kernel] = {}
-        best_params[kernel]['C'] = temp_params_tuple[0]
-        best_params[kernel]['gamma'] = temp_params_tuple[1]
-        best_params[kernel]['degree'] = temp_params_tuple[2]
+        if temp_params_tuple[0] != None: best_params[kernel]['C'] = temp_params_tuple[0]
+        if temp_params_tuple[1] != None: best_params[kernel]['gamma'] = temp_params_tuple[1]
+        if temp_params_tuple[2] != None: best_params[kernel]['degree'] = temp_params_tuple[2]
 
     pickle.dump(best_params, open('output/params', 'w+'))
