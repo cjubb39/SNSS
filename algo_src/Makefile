@@ -25,12 +25,13 @@ $(SORTED_NETWORK): $(NETWORK_DATA) $(PYTHON_SCRIPT)
 $(NETWORK_DATA):
 
 random: rand
-rand: $(SORTED_NETWORK)
+rand: $(SORTED_NETWORK) $(OUTPUT_FILE)
 	cat $(SORTED_NETWORK) | shuf | head -n$(N) > $(RAND_FILE)
 
 light_clean:
 	find . -regex './output/top_[0-9]+_nodes' -delete
 	find . -regex './output/random_[0-9]+_nodes' -delete
+	find . -regex './output/calculated_top_[0-9]+' -delete
 
 clean: light_clean
 	rm -f $(SORTED_NETWORK)
