@@ -3,11 +3,12 @@ import sys
 from random import sample
 import networkx as nx
 import numpy as np
-from sklearn import svm, cross_validation, grid_search, metrics
+from sklearn import svm, cross_validation, grid_search
 from math import ceil
 import scipy
 from collections import defaultdict
 import pickle
+# import matplotlib.pyplot as plt
 
 def hits(G,max_iter=100,tol=1.0e-6):
     M=nx.adjacency_matrix(G,nodelist=G.nodes())
@@ -53,9 +54,6 @@ def normalize_feature(feature_dict):
 
 if __name__ == "__main__":
     known_input = sys.argv[1]
-    goal_input = sys.argv[2]
-    kernel = sys.argv[3]
-    best_params = pickle.load(open('output/params', 'r'))
 
     retweet_graph = nx.DiGraph()
     nx.read_weighted_edgelist('data/higgs-retweet_network.edgelist', create_using=retweet_graph)
@@ -104,25 +102,48 @@ if __name__ == "__main__":
         training_X[index] = features[node] if node in features else empty_features
         training_Y[index] = value
 
-    # populate testing
-    X = np.zeros([len(testing_nodes), len(features.values()[0])])
-    ordered_test_nodes = [None] * len(testing_nodes)
-    for index, node in enumerate(testing_nodes):
-        X[index] = features[node]
-        ordered_test_nodes[index] = node
+    # perform cross-validation to identify best params
+    sss = cross_validation.LeavePOut(len(training_Y), p=int(float(len(training_Y)) * .4))
+    best_params_histogram = {
+        'linear': defaultdict(list),
+        'rbf': defaultdict(list),
+        'poly': defaultdict(list)
+    }
+    num_iterations = 0
+    max_iterations = 1000
+    for train_index, test_index in sss:
+        if num_iterations > max_iterations:
+            break
+        train_features = training_X[train_index]
+        train_labels = training_Y[train_index]
+        test_features = training_X[test_index]
+        test_labels = training_Y[test_index]
 
-    clf = svm.SVR(**(best_params[kernel]))
-    clf.fit(training_X, training_Y)
-    predictions = clf.predict(X)
+        # cross validation
+        svr = svm.SVR()
+        param_grid = [
+          {'C': [.01, .1, 1, 10, 100,1000,10000], 'kernel': ['linear']},
+          {'C': [.01, .1, 1, 10, 100,1000,10000], 'gamma': [1, .1, .01, 0.001, 0.0001, .00001], 'kernel': ['rbf']},
+          {'degree': [2, 3, 4, 5], 'kernel': ['poly']}
+        ]
 
-    # sort by predicted edges score
-    with open('output/calculated_top_' + goal_input + '_' + kernel, 'w+') as f:
-        count = 0
-        for i,p in sorted(enumerate(predictions), key=operator.itemgetter(1), reverse=True):
-            if count >= int(goal_input):
-                break
-            f.write(str(ordered_test_nodes[i]))
-            f.write(' ')
-            f.write(str(p))
-            f.write("\n")
-            count += 1
+        for kernel in param_grid:
+            clf = grid_search.GridSearchCV(svr, [kernel], scoring='mean_squared_error', iid=True)
+            clf.fit(train_features, train_labels)
+            for params, mean_score, scores in clf.grid_scores_:
+                best_params_histogram[params['kernel']][(params['C'] if 'C' in params else None, params['gamma'] if 'gamma' in params else None, params['degree'] if 'degree' in params else None)].extend(scores)
+
+        num_iterations += 1
+        # print "Detailed regression report:"
+        # y_true, y_pred = test_labels, clf.predict(test_features)
+        # print metrics.mean_squared_error(y_true, y_pred)
+
+    best_params = {}
+    for kernel in best_params_histogram:
+        temp_params_tuple = max(best_params_histogram[kernel].iteritems(), key=lambda x: np.mean(x[1]))[0]
+        best_params[kernel] = {}
+        best_params[kernel]['C'] = temp_params_tuple[0]
+        best_params[kernel]['gamma'] = temp_params_tuple[1]
+        best_params[kernel]['degree'] = temp_params_tuple[2]
+
+    pickle.dump(best_params, open('output/params', 'w+'))
