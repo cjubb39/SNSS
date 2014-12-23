@@ -33,4 +33,4 @@ while True:
 top_nodes = sorted(G.in_degree_iter(), key=itemgetter(1))[-n_top_n:]
 
 for n in top_nodes:
-	print("%d" % n[0], file=out)
+	print("%d %d" % (n[0], n[1]), file=out)
