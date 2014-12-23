@@ -30,7 +30,7 @@ while True:
 		G.add_edge(node1, node2)
 
 # what a beautiful graph
-top_nodes = sorted(G.in_degree_iter(), key=itemgetter(1))[-n_top_n:]
+top_nodes = sorted(G.in_degree_iter(), key=itemgetter(1), reverse=True)[0:n_top_n]
 
 for n in top_nodes:
 	print("%d %d" % (n[0], n[1]), file=out)
