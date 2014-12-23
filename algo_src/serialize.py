@@ -3,7 +3,7 @@ import sys
 from random import sample
 import networkx as nx
 import numpy as np
-from sklearn.svm import SVR
+from sklearn import svm, cross_validation, grid_search, metrics
 from math import ceil
 import scipy
 from collections import defaultdict
@@ -45,6 +45,11 @@ def calc_ratio(G, node):
 
     return in_count / out_count if out_count != 0.0 else 0.0
 
+def normalize_feature(feature_dict):
+    mean = np.mean(feature_dict.values())
+    std_dev = np.std(feature_dict.values())
+    return {k: (v - mean) / std_dev for k, v in feature_dict.iteritems()}
+
 if __name__ == "__main__":
     n_input = sys.argv[1]
 
@@ -54,6 +59,8 @@ if __name__ == "__main__":
     nx.read_weighted_edgelist('data/higgs-reply_network.edgelist', create_using=reply_graph)
     mention_graph = nx.DiGraph()
     nx.read_weighted_edgelist('data/higgs-mention_network.edgelist', create_using=mention_graph)
+
+    graphs = [retweet_graph, reply_graph, mention_graph]
 
     # load top N
     validation_top_n = []
@@ -68,44 +75,83 @@ if __name__ == "__main__":
             random_n.append(line.split())
 
     # calculate h/a for each graph
-    rt_h, rt_a = hits(retweet_graph)
-    rt_h = defaultdict(lambda: 0.0, rt_h)
-    rt_a = defaultdict(lambda: 0.0, rt_a)
-    rep_h, rep_a = hits(reply_graph)
-    rep_h = defaultdict(lambda: 0.0, rep_h)
-    rep_a = defaultdict(lambda: 0.0, rep_a)
-    mention_h, mention_a = hits(mention_graph)
-    mention_h = defaultdict(lambda: 0.0, mention_h)
-    mention_a = defaultdict(lambda: 0.0, mention_a)
+    features = []
+    for g in graphs:
+        hubs, authorities = hits(g)
+        hubs = defaultdict(lambda: 0.0, hubs)
+        authorities = defaultdict(lambda: 0.0, authorities)
+        features.append(hubs)
+        features.append(authorities)
+
+    # normalize feature data
+    features = [normalize_feature(x) for x in features]
 
     # get set of unique nodes in all graphs
     training_set = sample(random_n, int(ceil(int(n_input) * 0.2)))
     training_nodes = set(map(lambda x: x[0], training_set))
     # sample "guess" nodes from social data
-    testing_nodes = set(retweet_graph.nodes()) | set(reply_graph.nodes()) | set(mention_graph.nodes()) - training_nodes
+    all_nodes = set(retweet_graph.nodes()) | set(reply_graph.nodes()) | set(mention_graph.nodes())
+    testing_nodes = all_nodes - training_nodes
+
+    # convert features to dictionary
+    features = {node:map(lambda f: f[node] if node in f else 0.0, features) for node in all_nodes}
 
     # populate training
     training_X = np.empty([len(training_nodes), 6])
     training_Y = np.empty(len(training_nodes))
+    empty_features = [0.0] * len(features.values()[0])
     for index, n_v_tuple in enumerate(training_set):
         node = n_v_tuple[0]
         value = n_v_tuple[1]
-        training_X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node]]
+        training_X[index] = features[node] if node in features else empty_features
         training_Y[index] = value
 
-    clf = SVR(C=1.0, epsilon=0.2)
-    clf.fit(training_X, training_Y)
+    # perform cross-validation to identify best params
+    sss = cross_validation.LeavePOut(len(training_Y), p=int(float(len(training_Y)) * .4))
+    best_params = {}
+    for train_index, test_index in sss:
+        train_features = training_X[train_index]
+        train_labels = training_Y[train_index]
+        test_features = training_X[test_index]
+        test_labels = training_Y[test_index]
+
+        # cross validation
+        svr = svm.SVR()
+        param_grid = [
+          {'C': [.01, .1, 1, 10, 100,1000,10000], 'kernel': ['linear']},
+          {'C': [.01, .1, 1, 10, 100,1000,10000], 'gamma': [1, .1, .01, 0.001, 0.0001, .00001], 'kernel': ['rbf']},
+          {'degree': [2, 3, 4, 5], 'kernel': ['poly']}
+        ]
+
+        clf = grid_search.GridSearchCV(svr, param_grid, scoring='mean_squared_error', iid=True)
+        clf.fit(train_features, train_labels)
+        print("Best parameters set found on development set:")
+        print(clf.best_estimator_)
+        print
+        print("Grid scores on development set:")
+        for params, mean_score, scores in clf.grid_scores_:
+            print "%0.3f (+/-%0.03f) for %r" % (mean_score, scores.std() / 2, params)
+        print
+
+        print "Detailed regression report:"
+        y_true, y_pred = test_labels, clf.predict(test_features)
+        print metrics.mean_squared_error(y_true, y_pred)
+        best_params = clf.best_params_
+        break
 
     # populate testing
     X = np.zeros([len(testing_nodes), 6])
     ordered_test_nodes = [None] * len(testing_nodes)
     for index, node in enumerate(testing_nodes):
-        X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node]]
+        X[index] = features[node]
         ordered_test_nodes[index] = node
 
+    print best_params
+    clf = svm.SVR(**(best_params))
+    clf.fit(training_X, training_Y)
     predictions = clf.predict(X)
 
-    # sort by rt_h score
+    # sort by predicted edges score
     with open('output/calculated_top_' + n_input + '.txt', 'w+') as f:
         count = 0
         for i,p in sorted(enumerate(predictions), key=operator.itemgetter(1), reverse=True):
