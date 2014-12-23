@@ -55,9 +55,10 @@ if __name__ == "__main__":
     known_input = sys.argv[1]
     goal_input = sys.argv[2]
     kernel = sys.argv[3]
-    random_input_data_name = sys.argv[4]
-    output_data_name = sys.argv[5]
-    best_params = pickle.load(open('output/params', 'r'))
+    params_in_name = sys.argv[4]
+    random_input_data_name = sys.argv[5]
+    output_data_name = sys.argv[6]
+    best_params = pickle.load(open(params_in_name, 'r'))
 
     retweet_graph = nx.DiGraph()
     nx.read_weighted_edgelist('data/higgs-retweet_network.edgelist', create_using=retweet_graph)

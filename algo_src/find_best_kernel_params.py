@@ -54,6 +54,8 @@ def normalize_feature(feature_dict):
 
 if __name__ == "__main__":
     known_input = sys.argv[1]
+    random_input_data_name = sys.argv[2]
+    params_out_name = sys.argv[3]
 
     retweet_graph = nx.DiGraph()
     nx.read_weighted_edgelist('data/higgs-retweet_network.edgelist', create_using=retweet_graph)
@@ -66,7 +68,7 @@ if __name__ == "__main__":
 
     # load random N
     random_n = []
-    with open('output/random_' + known_input + '_nodes', 'r') as f:
+    with open(random_input_data_name, 'r') as f:
         for line in f:
             random_n.append(line.split())
 
@@ -146,4 +148,4 @@ if __name__ == "__main__":
         if temp_params_tuple[1] != None: best_params[kernel]['gamma'] = temp_params_tuple[1]
         if temp_params_tuple[2] != None: best_params[kernel]['degree'] = temp_params_tuple[2]
 
-    pickle.dump(best_params, open('output/params', 'w+'))
+    pickle.dump(best_params, open(params_out_name, 'w+'))
