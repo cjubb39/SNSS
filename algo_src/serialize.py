@@ -1,7 +1,10 @@
 import operator
+import sys
+from random import sample
 import networkx as nx
 import numpy as np
-from sklearn import svm
+from sklearn.svm import SVR
+from math import ceil
 import scipy
 from collections import defaultdict
 
@@ -32,48 +35,76 @@ def hits(G,max_iter=100,tol=1.0e-6):
     return hubs,authorities
 
 def calc_ratio(G, node):
-    in_count, out_count = 0.0
+    in_count = 0.0
+    out_count = 0.0
     for u,v,d in G.in_edges_iter(node, data=True):
         in_count += d['weight']
 
     for u,v,d in G.out_edges_iter(node, data=True):
         out_count += d['weight']
 
-    return in_count / out_count
+    return in_count / out_count if out_count != 0.0 else 0.0
 
 if __name__ == "__main__":
+    n_input = sys.argv[1]
+
     retweet_graph = nx.DiGraph()
     nx.read_weighted_edgelist('data/higgs-retweet_network.edgelist', create_using=retweet_graph)
-    # reply_graph = nx.DiGraph()
-    # nx.read_weighted_edgelist('data/higgs-reply_network.edgelist', create_using=reply_graph)
-    # mention_graph = nx.DiGraph()
-    # nx.read_weighted_edgelist('data/higgs-mention_network.edgelist', create_using=mention_graph)
+    reply_graph = nx.DiGraph()
+    nx.read_weighted_edgelist('data/higgs-reply_network.edgelist', create_using=reply_graph)
+    mention_graph = nx.DiGraph()
+    nx.read_weighted_edgelist('data/higgs-mention_network.edgelist', create_using=mention_graph)
 
     # load top N
-    # validation_top_n = defaultdict(lambda: 0)
-    # with open('output/validation_top_n.txt', 'r') as f:
-    #     for line in f:
-    #         validation_top_n.append(line)
+    validation_top_n = []
+    with open('output/top_' + n_input + '_nodes', 'r') as f:
+        for line in f:
+            validation_top_n.append(line.split())
 
     # calculate h/a for each graph
-    print "made it"
     rt_h, rt_a = hits(retweet_graph)
-    # rep_h, rep_a = hits(reply_graph)
-    # mention_h, mention_a = hits(mention_graph)
-    #
-    # # get set of unique nodes in all graphs
-    # all_nodes = set(retweet_graph.nodes()) | set(reply_graph.nodes()) | set(mention_graph.nodes())
-    #
-    # # populate X
-    # X = numpy.zeros([len(all_nodes), 9])
-    # for index, node in enumerate(all_nodes):
-    #     X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node], calc_ratio(retweet_graph, node), calc_ratio(reply_graph, node), calc_ratio(mention_graph, node)]
+    rt_h = defaultdict(lambda: 0.0, rt_h)
+    rt_a = defaultdict(lambda: 0.0, rt_a)
+    rep_h, rep_a = hits(reply_graph)
+    rep_h = defaultdict(lambda: 0.0, rep_h)
+    rep_a = defaultdict(lambda: 0.0, rep_a)
+    mention_h, mention_a = hits(mention_graph)
+    mention_h = defaultdict(lambda: 0.0, mention_h)
+    mention_a = defaultdict(lambda: 0.0, mention_a)
+
+    # get set of unique nodes in all graphs
+    training_set = sample(validation_top_n, int(ceil(int(n_input) * 0.2)))
+    training_nodes = set(map(lambda x: x[0], training_set))
+    # sample "guess" nodes from social data
+    testing_nodes = set(retweet_graph.nodes()) | set(reply_graph.nodes()) | set(mention_graph.nodes()) - training_nodes
+
+    # populate training
+    training_X = np.empty([len(training_nodes), 9])
+    training_Y = np.empty(len(training_nodes))
+    for index, n_v_tuple in enumerate(training_set):
+        node = n_v_tuple[0]
+        value = n_v_tuple[1]
+        training_X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node], calc_ratio(retweet_graph, node), calc_ratio(reply_graph, node), calc_ratio(mention_graph, node)]
+        training_Y[index] = value
+
+    clf = SVR(C=1.0, epsilon=0.2)
+    clf.fit(training_X, training_Y)
+
+    # populate testing
+    X = np.zeros([len(testing_nodes), 9])
+    ordered_test_nodes = [None] * len(testing_nodes)
+    for index, node in enumerate(testing_nodes):
+        X[index] = [rt_h[node], rt_a[node], rep_h[node], rep_a[node], mention_h[node], mention_a[node], calc_ratio(retweet_graph, node), calc_ratio(reply_graph, node), calc_ratio(mention_graph, node)]
+        ordered_test_nodes[index] = node
+
+    predictions = clf.predict(X)
 
     # sort by rt_h score
     with open('output/rt_h_top_n.txt', 'w+') as f:
-        print "made it"
-        for node,h_score in sorted(rt_h.items(), key=operator.itemgetter(1)):
-            f.write(node)
+        for i,p in sorted(enumerate(predictions), key=operator.itemgetter(1), reverse=True):
+            f.write(str(ordered_test_nodes[i]))
+            f.write(' ')
+            f.write(str(p))
             f.write("\n")
 
 
