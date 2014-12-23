@@ -10,7 +10,7 @@ help:
 	@head -n3 Makefile
 
 $(OUTPUT_FILE): $(NETWORK_DATA)
-	python generate_top_nodes.py $(NETWORK_DATA) $(N) $(OUTPUT_FILE)
+	python generate_top_n_nodes.py $(NETWORK_DATA) $(N) $(OUTPUT_FILE)
 
 $(NETWORK_DATA):
 
