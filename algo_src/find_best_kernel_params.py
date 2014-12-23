@@ -112,7 +112,7 @@ if __name__ == "__main__":
         'poly': defaultdict(list)
     }
     num_iterations = 0
-    max_iterations = 1000
+    max_iterations = 100
     for train_index, test_index in sss:
         if num_iterations > max_iterations:
             break
