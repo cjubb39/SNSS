@@ -17,3 +17,4 @@ $(NETWORK_DATA):
 
 clean:
 	find . -regex './output/top_[0-9]+_nodes' -delete
+	rmdir output
