@@ -30,6 +30,7 @@ rand: $(SORTED_NETWORK)
 
 clean:
 	find . -regex './output/top_[0-9]+_nodes' -delete
+	find . -regex './output/random_[0-9]+_nodes' -delete
 	rm -f $(SORTED_NETWORK)
 	@rmdir output > /dev/null 2>&1 && echo "output folder deleted" \
 		|| echo "output folder not deleted"
