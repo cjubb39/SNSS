@@ -14,5 +14,49 @@
 \begin{document}
 \maketitle
 
+\section{Problem Statement}
+%Par. 1 general motivation, why is that pb area important
+Finding reliable information on the internet is important.
+This is especially important during times of crisis and extreme innovation.
+In its microblogging form, Twitter provides quick access to information that anyone can post.
+While news stories are breaking, it is important to distribute reliable information.
+We can approximate this pursuit by finding the key influencers on this platform
+For various reasons, certain individuals become a rallying point or a key participant in the spread of information.
+Because a few people will dominate the information sphere, identifying these people is important.
+Having this information, the media and press might target this group.
+Doing this is obviously much more effective and efficient than contacting those without influence and power.
+
+%Par. 2~3 narrow down: specify what choices you make and important assumptions (without being too technical)
+% Hubs and authorities; SVM
+[Paragraph 2 here: more general maybe?]
+
+We focus on three auxiliary data sets: retweets, replies, and mentions.
+These data sets serve three distinct purposes.
+\begin{description}
+\item [Retweets]
+    This interaction is the most passive of those listed here.
+    It often serves simply as an acknowledgement of another's communication.
+    We assume this to be an indicator of a very weak relationship.
+\item [Replies]
+    Of the three, replies indicate the most direct and personal form of interaction between two users.
+    It is a direct reach to initiate (or continue) a conversation with another user.
+    We assume this to be an indicator of a tight relationship, especially if the communication is two-way.
+\item [Mentions]
+    Mentions are the least straightforward because their use ranges the most widely.
+    This range is mostly in part due to the wide range of a ``shout-out''.
+    It could be an inviation for communication or simply equivalent to the CC line on an email.
+\end{description}
+Through appropriate analysis and synthesis, we attempt to reconstruct the social graph using these auxiliary data sets.
+
+%Par. 4 first sentence should describe your problem formulation and contribution. Typically people start this paragraph with “In this paper, we ...”
+In this paper, we attempt to reconstruct a directed social network using auxiliary data concerning interactions on that network.
+We focus on the spread of information surrounding the time period of the announcement of the discovery of a particle with properties similar to those of the theoretical Higgs Boson.
+[FINISH PARAGRAPH 4]
+
+\section{Related Work}
+
+
+\section{Results}
+
 
 \end{document}
