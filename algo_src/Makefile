@@ -16,6 +16,9 @@ CHECK_SCRIPT = check.py
 
 check_$(GOAL_N)_with_$(KNOWN_N): check
 
+reset:
+	touch $(SORTED_NETWORK)
+
 help:
 	@echo "Environment Variables will override test parameters."
 	@echo "Defaults are as follows:\n"
